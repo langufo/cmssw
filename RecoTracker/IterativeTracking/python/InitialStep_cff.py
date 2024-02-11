@@ -23,7 +23,7 @@ from Configuration.Eras.Modifier_trackingPhase1_cff import trackingPhase1
 trackingPhase1.toModify(initialStepSeedLayers,
     layerList = RecoTracker.TkSeedingLayers.PixelLayerQuadruplets_cfi.PixelLayerQuadruplets.layerList.value()
 )
-trackingPhase2PU140.toModify(initialStepSeedLayers,
+trackingPhase2PU140.toModify(initialStepSeedLayers, # TODO where gets trackingPhase2PU140 imported?
     layerList = RecoTracker.TkSeedingLayers.PixelLayerQuadruplets_cfi.PixelLayerQuadruplets.layerList.value()
 )
 

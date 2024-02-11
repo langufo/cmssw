@@ -23,6 +23,10 @@ from Configuration.Eras.Modifier_trackingPhase1_cff import trackingPhase1
 trackingPhase1.toModify(initialStepSeedLayersPreSplitting,
     layerList = RecoTracker.TkSeedingLayers.PixelLayerQuadruplets_cfi.PixelLayerQuadruplets.layerList.value()
 )
+from Configuration.Eras.Modifier_trackingPhase2PU140_cff import trackingPhase2PU140
+trackingPhase2PU140.toModify(initialStepSeedLayersPreSplitting,
+    layerList = RecoTracker.TkSeedingLayers.PixelLayerQuadruplets_cfi.PixelLayerQuadruplets.layerList.value()
+)
 
 # TrackingRegion
 from RecoTracker.TkTrackingRegions.globalTrackingRegionFromBeamSpot_cfi import globalTrackingRegionFromBeamSpot as _globalTrackingRegionFromBeamSpot
@@ -32,6 +36,7 @@ initialStepTrackingRegionsPreSplitting = _globalTrackingRegionFromBeamSpot.clone
     nSigmaZ      = 4.0
 ))
 trackingPhase1.toModify(initialStepTrackingRegionsPreSplitting, RegionPSet = dict(ptMin = 0.5))
+trackingPhase2PU140.toModify(initialStepTrackingRegionsPreSplitting, RegionPSet = dict(ptMin = 0.6,originRadius = 0.03))
 
 # seeding
 from RecoTracker.TkHitPairs.hitPairEDProducer_cfi import hitPairEDProducer as _hitPairEDProducer
@@ -54,6 +59,7 @@ initialStepHitTripletsPreSplitting = _pixelTripletHLTEDProducer.clone(
 )
 from RecoTracker.PixelSeeding.caHitQuadrupletEDProducer_cfi import caHitQuadrupletEDProducer as _caHitQuadrupletEDProducer
 trackingPhase1.toModify(initialStepHitDoubletsPreSplitting, layerPairs = [0,1,2]) # layer pairs (0,1), (1,2), (2,3)
+trackingPhase2PU140.toModify(initialStepHitDoubletsPreSplitting, layerPairs = [0,1,2]) # layer pairs (0,1), (1,2), (2,3)
 initialStepHitQuadrupletsPreSplitting = _caHitQuadrupletEDProducer.clone(
     doublets = 'initialStepHitDoubletsPreSplitting',
     extraHitRPhitolerance = initialStepHitTripletsPreSplitting.extraHitRPhitolerance,
@@ -68,11 +74,16 @@ initialStepHitQuadrupletsPreSplitting = _caHitQuadrupletEDProducer.clone(
     CAThetaCut           = 0.0012,
     CAPhiCut             = 0.2,
 )
+trackingPhase2PU140.toModify(initialStepHitQuadrupletsPreSplitting,
+    CAThetaCut = 0.0010,
+    CAPhiCut   = 0.175,
+)
 from RecoTracker.TkSeedGenerator.seedCreatorFromRegionConsecutiveHitsEDProducer_cff import seedCreatorFromRegionConsecutiveHitsEDProducer as _seedCreatorFromRegionConsecutiveHitsEDProducer
 initialStepSeedsPreSplitting = _seedCreatorFromRegionConsecutiveHitsEDProducer.clone(
     seedingHitSets = 'initialStepHitTripletsPreSplitting',
 )
 trackingPhase1.toModify(initialStepSeedsPreSplitting, seedingHitSets = 'initialStepHitQuadrupletsPreSplitting')
+trackingPhase2PU140.toModify(initialStepSeedsPreSplitting, seedingHitSets = 'initialStepHitQuadrupletsPreSplitting')
 
 
 # building
@@ -237,6 +248,9 @@ InitialStepPreSplitting = cms.Sequence(InitialStepPreSplittingTask)
 _InitialStepPreSplittingTask_trackingPhase1 = InitialStepPreSplittingTask.copy()
 _InitialStepPreSplittingTask_trackingPhase1.replace(initialStepHitTripletsPreSplitting, cms.Task(initialStepHitTripletsPreSplitting,initialStepHitQuadrupletsPreSplitting))
 trackingPhase1.toReplaceWith(InitialStepPreSplittingTask, _InitialStepPreSplittingTask_trackingPhase1.copyAndExclude([initialStepHitTripletsPreSplitting]))
+_InitialStepPreSplittingTask_trackingPhase2PU140 = InitialStepPreSplittingTask.copy()
+_InitialStepPreSplittingTask_trackingPhase2PU140.replace(initialStepHitTripletsPreSplitting, cms.Task(initialStepHitTripletsPreSplitting,initialStepHitQuadrupletsPreSplitting))
+trackingPhase2PU140.toReplaceWith(InitialStepPreSplittingTask, _InitialStepPreSplittingTask_trackingPhase2PU140.copyAndExclude([initialStepHitTripletsPreSplitting]))
 
 from Configuration.ProcessModifiers.trackingMkFitCommon_cff import trackingMkFitCommon
 _InitialStepPreSplittingTask_trackingMkFitCommon = InitialStepPreSplittingTask.copy()
@@ -265,12 +279,22 @@ from RecoLocalTracker.SiPixelClusterizer.SiPixelClusterizer_cfi import siPixelCl
 from Configuration.Eras.Modifier_trackingLowPU_cff import trackingLowPU
 trackingLowPU.toReplaceWith(siPixelClusters, _siPixelClusters)
 from Configuration.Eras.Modifier_trackingPhase2PU140_cff import trackingPhase2PU140
-trackingPhase2PU140.toReplaceWith(siPixelClusters, _siPixelClusters)
-_InitialStepPreSplittingTask_LowPU_Phase2PU140 = cms.Task(
+_InitialStepPreSplittingTask_LowPU = cms.Task(
     siPixelClusters ,
     siPixelRecHits ,
     MeasurementTrackerEvent ,
     siPixelClusterShapeCache
 )
-trackingLowPU.toReplaceWith(InitialStepPreSplittingTask, _InitialStepPreSplittingTask_LowPU_Phase2PU140)
-trackingPhase2PU140.toReplaceWith(InitialStepPreSplittingTask, _InitialStepPreSplittingTask_LowPU_Phase2PU140)
+trackingLowPU.toReplaceWith(InitialStepPreSplittingTask, _InitialStepPreSplittingTask_LowPU)
+trackingPhase2PU140.toModify(siPixelClusters,
+    centralMIPCharge  = cms.double(12000),
+    expSizeXAtLorentzAngleIncidence = cms.double(1.5),
+    expSizeXDeltaPerTanAlpha = cms.double(5.2),
+    expSizeYAtNormalIncidence = cms.double(2.3),
+    tanLorentzAngle = cms.double(-0.21),
+    tanLorentzAngleBarrelLayer1 = cms.double(0.0),
+    pitchX = cms.double(25.0),
+    pitchY = cms.double(100.0),
+    thickness = cms.double(150.0),
+    chargeFractionMin = cms.double(2.0),
+)

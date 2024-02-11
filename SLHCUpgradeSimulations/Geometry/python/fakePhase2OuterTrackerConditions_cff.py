@@ -33,3 +33,13 @@ SiPhase2OTFakeBadStripsESSource = siPhase2BadStripConfigurableFakeESSource.clone
                                                                                  appendToDataLabel = '')
 
 es_prefer_fake_BadStrips = cms.ESPrefer("SiPhase2BadStripConfigurableFakeESSource","SiPhase2OTFakeBadStripsESSource")
+
+from CalibTracker.SiStripESProducers.fake.SiStripNoisesFakeESSource_cfi import siStripNoisesFakeESSource
+SiPhase2OTFakeSiStripNoiseESSource = siStripNoisesFakeESSource.clone(StripLengthMode = False,
+                                                                     electronPerAdc = 1.0,
+                                                                     MeanNoiseTID = cms.vdouble([1010.0, 1263.0, 1263.0]),
+                                                                     SigmaNoiseTID = cms.vdouble([0.0] * 3),
+                                                                     MeanNoiseTOB = cms.vdouble([1010.0] * 3 + [1263.0] * 3),
+                                                                     SigmaNoiseTOB = cms.vdouble([0.0] * 6))
+
+es_prefer_fake_SiStripNoise = cms.ESPrefer("SiStripNoisesFakeESSource","SiPhase2OTFakeSiStripNoiseESSource")

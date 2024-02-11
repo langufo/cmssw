@@ -234,6 +234,7 @@ bool StripSubClusterShapeFilterBase::testLastHit(const TrackingRecHit *hit,
     const SiStripRecHit2D &orig = mhit.originalHit();
     return testLastHit(&orig, gpos, gdir, true);
   } else if ((stripHit = dynamic_cast<const TrackerSingleRecHit *>(hit)) != nullptr) {
+    if (stripHit->omniCluster().isPhase2()) return true; // FIXME what's proper handling?
     DetId detId = hit->geographicalId();
 
     if (layerMask_[detId.subdetId()][0] == 0) {
