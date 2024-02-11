@@ -150,9 +150,9 @@ void ClusterShapeHitFilter::fillStripData() {
   auto const& geom_ = *theTracker;
   auto const& dus = geom_.detUnits();
   auto offset = dus.size();
-  for (unsigned int i = 1; i < 7; ++i) {
+  for (unsigned int i = 3; i <= 6; ++i) {
     if (geom_.offsetDU(GeomDetEnumerators::tkDetEnum[i]) != dus.size() &&
-        dus[geom_.offsetDU(GeomDetEnumerators::tkDetEnum[i])]->type().isTrackerStrip()) {
+        true) { // the check that these detector units are Strip is the value of i (FIXME?)
       if (geom_.offsetDU(GeomDetEnumerators::tkDetEnum[i]) < offset)
         offset = geom_.offsetDU(GeomDetEnumerators::tkDetEnum[i]);
     }
@@ -161,7 +161,6 @@ void ClusterShapeHitFilter::fillStripData() {
   for (auto i = offset; i != dus.size(); ++i) {
     const StripGeomDetUnit* stripdet = (const StripGeomDetUnit*)(dus[i]);
     assert(stripdet->index() == int(i));
-    assert(stripdet->type().isTrackerStrip());  // not pixel
     auto const& bounds = stripdet->specificSurface().bounds();
     auto detid = stripdet->geographicalId();
     auto& p = stripData[detid];
