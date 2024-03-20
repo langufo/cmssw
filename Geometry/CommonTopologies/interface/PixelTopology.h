@@ -43,6 +43,8 @@ public:
 
   virtual bool isItBigPixelInX(int ixbin) const = 0;
   virtual bool isItBigPixelInY(int iybin) const = 0;
+  virtual float RelativeFractionPixelInX(int ixbin) const = 0;
+  virtual float RelativeFractionPixelInY(int iybin) const = 0;
   virtual bool containsBigPixelInX(int ixmin, int ixmax) const = 0;
   virtual bool containsBigPixelInY(int iymin, int iymax) const = 0;
 
