@@ -71,6 +71,20 @@ _layerListForPhase1 = [
         'BPix4+TIB1','BPix4+TIB2'
     ]
 trackingPhase1.toModify(jetCoreRegionalStepSeedLayers, layerList = _layerListForPhase1)
+from Configuration.Eras.Modifier_trackingPhase2PU140_cff import trackingPhase2PU140
+_layerListForPhase2 = [
+        'BPix1+BPix2', 'BPix1+BPix3', 'BPix1+BPix4',
+        'BPix2+BPix3', 'BPix2+BPix4',
+        'BPix3+BPix4',
+        'BPix1+FPix1_pos', 'BPix1+FPix1_neg',
+        'BPix2+FPix1_pos', 'BPix2+FPix1_neg',
+        'FPix1_pos+FPix2_pos', 'FPix1_neg+FPix2_neg',
+        'FPix1_pos+FPix3_pos', 'FPix1_neg+FPix3_neg',
+        'FPix2_pos+FPix3_pos', 'FPix2_neg+FPix3_neg',
+        #'BPix3+TIB1','BPix3+TIB2'
+        #'BPix4+TIB1','BPix4+TIB2'
+    ]
+trackingPhase2PU140.toModify(jetCoreRegionalStepSeedLayers, layerList = _layerListForPhase2)
 
 # TrackingRegion
 from RecoTauTag.HLTProducers.tauRegionalPixelSeedTrackingRegions_cfi import tauRegionalPixelSeedTrackingRegions as _tauRegionalPixelSeedTrackingRegions
