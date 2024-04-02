@@ -272,4 +272,14 @@ _InitialStepPreSplittingTask_LowPU = cms.Task(
     siPixelClusterShapeCache
 )
 trackingLowPU.toReplaceWith(InitialStepPreSplittingTask, _InitialStepPreSplittingTask_LowPU)
-trackingPhase2PU140.toModify(siPixelClusters, centralMIPCharge=12000)
+trackingPhase2PU140.toModify(siPixelClusters,
+    centralMIPCharge  = cms.double(12000),
+    expSizeXAtLorentzAngleIncidence = cms.double(1.9),
+    expSizeXDeltaPerTanAlpha = cms.double(4.44),
+    expSizeYAtNormalIncidence = cms.double(2.85),
+    tanLorentzAngle = cms.double(-0.19),
+    tanLorentzAngleBarrelLayer1 = cms.double(0.0),
+    pitchX = cms.double(25.0),
+    pitchY = cms.double(100.0),
+    thickness = cms.double(150.0),
+)

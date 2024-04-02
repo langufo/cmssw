@@ -15,6 +15,8 @@
 #include "Geometry/Records/interface/GlobalTrackingGeometryRecord.h"
 #include "DataFormats/GeometryVector/interface/VectorUtil.h"
 
+#include "DataFormats/TrackerCommon/interface/TrackerTopology.h"
+
 #include "DataFormats/VertexReco/interface/Vertex.h"
 #include "DataFormats/VertexReco/interface/VertexFwd.h"
 #include "DataFormats/JetReco/interface/Jet.h"
@@ -49,11 +51,20 @@ private:
 
   edm::ESGetToken<GlobalTrackingGeometry, GlobalTrackingGeometryRecord> const tTrackingGeom_;
   edm::ESGetToken<PixelClusterParameterEstimator, TkPixelCPERecord> const tCPE_;
+  edm::ESGetToken<TrackerTopology, TrackerTopologyRcd> const tTrackerTopo_;
 
   bool verbose;
   double ptMin_;
   double deltaR_;
   double chargeFracMin_;
+  float expSizeXAtLorentzAngleIncidence_;
+  float expSizeXDeltaPerTanAlpha_;
+  float expSizeYAtNormalIncidence_;
+  float tanLorentzAngle_;
+  float tanLorentzAngleBarrelLayer1_;
+  float pitchX_;
+  float pitchY_;
+  float thickness_;
   edm::EDGetTokenT<edmNew::DetSetVector<SiPixelCluster>> pixelClusters_;
   edm::EDGetTokenT<reco::VertexCollection> vertices_;
   edm::EDGetTokenT<edm::View<reco::Candidate>> cores_;
@@ -67,10 +78,19 @@ private:
 JetCoreClusterSplitter::JetCoreClusterSplitter(const edm::ParameterSet& iConfig)
     : tTrackingGeom_(esConsumes()),
       tCPE_(esConsumes(edm::ESInputTag("", iConfig.getParameter<std::string>("pixelCPE")))),
+      tTrackerTopo_(esConsumes()),
       verbose(iConfig.getParameter<bool>("verbose")),
       ptMin_(iConfig.getParameter<double>("ptMin")),
       deltaR_(iConfig.getParameter<double>("deltaRmax")),
       chargeFracMin_(iConfig.getParameter<double>("chargeFractionMin")),
+      expSizeXAtLorentzAngleIncidence_(iConfig.getParameter<double>("expSizeXAtLorentzAngleIncidence")),
+      expSizeXDeltaPerTanAlpha_(iConfig.getParameter<double>("expSizeXDeltaPerTanAlpha")),
+      expSizeYAtNormalIncidence_(iConfig.getParameter<double>("expSizeYAtNormalIncidence")),
+      tanLorentzAngle_(iConfig.getParameter<double>("tanLorentzAngle")),
+      tanLorentzAngleBarrelLayer1_(iConfig.getParameter<double>("tanLorentzAngleBarrelLayer1")),
+      pitchX_(iConfig.getParameter<double>("pitchX")),
+      pitchY_(iConfig.getParameter<double>("pitchY")),
+      thickness_(iConfig.getParameter<double>("thickness")),
       pixelClusters_(
           consumes<edmNew::DetSetVector<SiPixelCluster>>(iConfig.getParameter<edm::InputTag>("pixelClusters"))),
       vertices_(consumes<reco::VertexCollection>(iConfig.getParameter<edm::InputTag>("vertices"))),
@@ -92,6 +112,7 @@ bool SortPixels(const SiPixelCluster::Pixel& i, const SiPixelCluster::Pixel& j) 
 void JetCoreClusterSplitter::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
   using namespace edm;
   const auto& geometry = &iSetup.getData(tTrackingGeom_);
+  const auto& topology = &iSetup.getData(tTrackerTopo_);
 
   Handle<edmNew::DetSetVector<SiPixelCluster>> inputPixelClusters;
   iEvent.getByToken(pixelClusters_, inputPixelClusters);
@@ -111,6 +132,10 @@ void JetCoreClusterSplitter::produce(edm::Event& iEvent, const edm::EventSetup& 
     edmNew::DetSetVector<SiPixelCluster>::FastFiller filler(*output, detIt->id());
     const edmNew::DetSet<SiPixelCluster>& detset = *detIt;
     const GeomDet* det = geometry->idToDet(detset.id());
+    float tanLorentzAngle = tanLorentzAngle_;
+    if(DetId(detset.id()).subdetId() == 1 /* px barrel */ && topology->pxbLayer(detset.id()) == 1) {
+      tanLorentzAngle = tanLorentzAngleBarrelLayer1_;
+    }
     for (auto cluster = detset.begin(); cluster != detset.end(); cluster++) {
       const SiPixelCluster& aCluster = *cluster;
       bool hasBeenSplit = false;
@@ -126,18 +151,16 @@ void JetCoreClusterSplitter::produce(edm::Event& iEvent, const edm::EventSetup& 
           if (Geom::deltaR(jetDir, clusterDir) < deltaR_) {
             // check if the cluster has to be splitted
 
-            bool isEndCap = (std::abs(cPos.z()) > 30.f);  // FIXME: check detID instead!
+            LocalVector jetDirLocal = det->surface().toLocal(jetDir);
+            float jetTanAlpha = jetDirLocal.x() / jetDirLocal.z();
+            float jetTanBeta = jetDirLocal.y() / jetDirLocal.z();
             float jetZOverRho = jet.momentum().Z() / jet.momentum().Rho();
-            if (isEndCap)
-              jetZOverRho = jet.momentum().Rho() / jet.momentum().Z();
-            float expSizeY = std::sqrt((1.3f * 1.3f) + (1.9f * 1.9f) * jetZOverRho * jetZOverRho);
+            float expSizeX = expSizeXAtLorentzAngleIncidence_ + std::abs(expSizeXDeltaPerTanAlpha_ * (jetTanAlpha-tanLorentzAngle));
+            float expSizeY = std::sqrt((expSizeYAtNormalIncidence_ * expSizeYAtNormalIncidence_) + thickness_ * thickness_ / (pitchY_ * pitchY_) * jetTanBeta * jetTanBeta);
+            if (expSizeX < 1.f)
+              expSizeX = 1.f;
             if (expSizeY < 1.f)
               expSizeY = 1.f;
-            float expSizeX = 1.5f;
-            if (isEndCap) {
-              expSizeX = expSizeY;
-              expSizeY = 1.5f;
-            }  // in endcap col/rows are switched
             float expCharge = std::sqrt(1.08f + jetZOverRho * jetZOverRho) * centralMIPCharge_;
 
             if (aCluster.charge() > expCharge * chargeFracMin_ &&
@@ -163,8 +186,8 @@ void JetCoreClusterSplitter::produce(edm::Event& iEvent, const edm::EventSetup& 
         if (shouldBeSplit) {
           // blowup the error if we failed to split a splittable cluster (does
           // it ever happen)
-          c.setSplitClusterErrorX(c.sizeX() * (100.f / 3.f));  // this is not really blowing up .. TODO: tune
-          c.setSplitClusterErrorY(c.sizeY() * (150.f / 3.f));
+          c.setSplitClusterErrorX(c.sizeX() * (pitchX_ / 3.f));  // this is not really blowing up .. TODO: tune
+          c.setSplitClusterErrorY(c.sizeY() * (pitchY_ / 3.f));
         }
         filler.push_back(c);
         std::push_heap(filler.begin(), filler.end(), [](SiPixelCluster const& cl1, SiPixelCluster const& cl2) {
