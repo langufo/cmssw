@@ -71,6 +71,20 @@ _layerListForPhase1 = [
         'BPix4+TIB1','BPix4+TIB2'
     ]
 trackingPhase1.toModify(jetCoreRegionalStepSeedLayers, layerList = _layerListForPhase1)
+from Configuration.Eras.Modifier_trackingPhase2PU140_cff import trackingPhase2PU140
+_layerListForPhase2 = [
+        'BPix1+BPix2', 'BPix1+BPix3', 'BPix1+BPix4',
+        'BPix2+BPix3', 'BPix2+BPix4',
+        'BPix3+BPix4',
+        'BPix1+FPix1_pos', 'BPix1+FPix1_neg',
+        'BPix2+FPix1_pos', 'BPix2+FPix1_neg',
+        'FPix1_pos+FPix2_pos', 'FPix1_neg+FPix2_neg',
+        'FPix1_pos+FPix3_pos', 'FPix1_neg+FPix3_neg',
+        'FPix2_pos+FPix3_pos', 'FPix2_neg+FPix3_neg',
+        #'BPix3+TIB1','BPix3+TIB2'
+        #'BPix4+TIB1','BPix4+TIB2'
+    ]
+trackingPhase2PU140.toModify(jetCoreRegionalStepSeedLayers, layerList = _layerListForPhase2)
 
 # TrackingRegion
 from RecoTauTag.HLTProducers.tauRegionalPixelSeedTrackingRegions_cfi import tauRegionalPixelSeedTrackingRegions as _tauRegionalPixelSeedTrackingRegions
@@ -333,6 +347,74 @@ JetCoreRegionalStepEndcapTask = cms.Task(jetsForCoreTrackingEndcap,
                                          jetCoreRegionalStepEndcapTracks,
                                          jetCoreRegionalStepEndcap)
 
+
+import RecoTracker.FinalTrackSelectors.multiTrackSelector_cfi
+jetCoreRegionalStepSelector = RecoTracker.FinalTrackSelectors.multiTrackSelector_cfi.multiTrackSelector.clone(
+    src = 'jetCoreRegionalStepTracks',
+    #useAnyMVA = cms.bool(False),
+    #GBRForestLabel = cms.string('MVASelectorIter0'),
+    #trackSelectors = [
+    #    RecoTracker.FinalTrackSelectors.multiTrackSelector_cfi.looseMTS.clone(
+    #        name = 'jetCoreRegionalStepLoose',
+    #    ), #end of pset
+    #    RecoTracker.FinalTrackSelectors.multiTrackSelector_cfi.tightMTS.clone(
+    #        name = 'jetCoreRegionalStepTight',
+    #        preFilterName = 'jetCoreRegionalStepLoose',
+    #    ),
+    #    RecoTracker.FinalTrackSelectors.multiTrackSelector_cfi.highpurityMTS.clone(
+    #        name = 'QualityMasks',
+    #        preFilterName = 'jetCoreRegionalStepTight',
+    #    ),
+    #],
+    #useAnyMVA = None,
+    #GBRForestLabel = None,
+    trackSelectors= cms.VPSet(
+        RecoTracker.FinalTrackSelectors.multiTrackSelector_cfi.looseMTS.clone(
+            name = 'jetCoreRegionalStepLoose',
+            chi2n_par = 2.0,
+            res_par = ( 0.003, 0.002 ),
+            minNumberLayers = 3,
+            maxNumberLostLayers = 3,
+            minNumber3DLayers = 3,
+            d0_par1 = ( 0.8, 4.0 ),
+            dz_par1 = ( 0.9, 4.0 ),
+            d0_par2 = ( 0.6, 4.0 ),
+            dz_par2 = ( 0.8, 4.0 )
+            ), #end of pset
+        RecoTracker.FinalTrackSelectors.multiTrackSelector_cfi.tightMTS.clone(
+            name = 'jetCoreRegionalStepTight',
+            preFilterName = 'jetCoreRegionalStepLoose',
+            chi2n_par = 1.4,
+            res_par = ( 0.003, 0.002 ),
+            minNumberLayers = 3,
+            maxNumberLostLayers = 2,
+            minNumber3DLayers = 3,
+            d0_par1 = ( 0.7, 4.0 ),
+            dz_par1 = ( 0.8, 4.0 ),
+            d0_par2 = ( 0.5, 4.0 ),
+            dz_par2 = ( 0.7, 4.0 )
+            ),
+        RecoTracker.FinalTrackSelectors.multiTrackSelector_cfi.highpurityMTS.clone(
+            name = 'jetCoreRegionalStep',
+            preFilterName = 'jetCoreRegionalStepTight',
+            min_eta = -4.1,
+            max_eta = 4.1,
+            chi2n_par = 1.2,
+            res_par = ( 0.003, 0.001 ),
+            minNumberLayers = 3,
+            maxNumberLostLayers = 2,
+            minNumber3DLayers = 3,
+            d0_par1 = ( 0.6, 4.0 ),
+            dz_par1 = ( 0.7, 4.0 ),
+            d0_par2 = ( 0.45, 4.0 ),
+            dz_par2 = ( 0.55, 4.0 )
+            ),
+        ), #end of vpset
+) #end of clone
+_JetCoreRegionalStepTask_trackingPhase2 = JetCoreRegionalStepTask.copy()
+_JetCoreRegionalStepTask_trackingPhase2.replace(jetCoreRegionalStep, jetCoreRegionalStepSelector)
+trackingPhase2PU140.toReplaceWith(JetCoreRegionalStepTask, _JetCoreRegionalStepTask_trackingPhase2)
+trackingPhase2PU140.toModify(jetCoreRegionalStepTracks, TrajectoryInEvent = True)
 
 from Configuration.ProcessModifiers.seedingDeepCore_cff import seedingDeepCore
 
